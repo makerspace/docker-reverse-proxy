@@ -1,0 +1,32 @@
+version: '2'
+services:
+
+  reverse-proxy:
+    image: jwilder/nginx-proxy:0.6.0
+    container_name: reverse-proxy
+    ports:
+      - "${SERVER_IP}:80:80"
+      - "${SERVER_IP}:443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - /usr/share/nginx/html
+      - ./configs/upload_limit.conf:/etc/nginx/conf.d/upload_limit.conf:ro
+      - ./configs/htpasswd:/etc/nginx/htpasswd
+      - ./data/cert:/etc/nginx/certs:ro
+      - ./data/conf:/etc/nginx/vhost.d
+      - ./data/html:/usr/share/nginx/html
+    environment:
+      - DEFAULT_HOST
+    network_mode: "bridge"
+    restart: always
+
+  letsencrypt-companion:
+    image: jrcs/letsencrypt-nginx-proxy-companion:v1.8.1
+    container_name: letsencrypt
+    volumes_from:
+      - reverse-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data/cert:/etc/nginx/certs:rw
+    network_mode: "bridge"
+    restart: always
